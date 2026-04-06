@@ -255,7 +255,7 @@ left outer join
 on
   market.component_symbol = industry.component_symbol and
   market.date = industry.date and
-  industry.sub_industry is not null
+  spdr.is_industry_etf(industry.etf_symbol)
 join
   start_close as market_start_close
 on
@@ -393,7 +393,7 @@ left outer join
 on
   market.component_symbol = industry.component_symbol and
   market.date = industry.date and
-  industry.sub_industry is not null
+  spdr.is_industry_etf(industry.etf_symbol)
 left outer join
   etf_rank industry_rank
 on
@@ -532,7 +532,7 @@ left outer join
 on
   market.component_symbol = industry.component_symbol and
   market.date = industry.date and
-  industry.sub_industry is not null
+  spdr.is_industry_etf(industry.etf_symbol)
 left outer join
   oic.volatility_history industry_vol
 on
@@ -611,7 +611,7 @@ left outer join
 on
   market.component_symbol = industry.component_symbol and
   market.date = industry.date and
-  industry.sub_industry is not null
+  spdr.is_industry_etf(industry.etf_symbol)
 left outer join
   zacks.earnings_calendar ec
 on
