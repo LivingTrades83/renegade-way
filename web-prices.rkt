@@ -19,8 +19,8 @@
 (define headers
   (response-headers (post "https://finviz.com/login_submit.ashx"
                           #:max-redirects 0
-                          #:form (list (cons 'email (finviz-user))
-                                       (cons 'password (finviz-pass))
+                          #:form (list ;(cons 'email (finviz-user))
+                                       ;(cons 'password (finviz-pass))
                                        (cons 'remember "true")))))
 
 (define aspx-auth
@@ -58,16 +58,18 @@
 (define (get-nasdaq-prices symbols)
   (with-handlers ([exn:fail?
                    (λ (error)
-                     (displayln (string-append "Nasdaq: Encountered error for " (first symbols) "-" (last symbols)))
+                     (if (= 0 (length symbols))
+                         (displayln "Encountered an error retrieving no symbols")
+                         (displayln (string-append "Nasdaq: Encountered error for " (first symbols) "-" (last symbols))))
                      (displayln error)
                      (apply hash (flatten (map (λ (symbol) (list symbol 0.0)) symbols))))])
     (~> (get (string-append "https://api.nasdaq.com/api/quote/watchlist?type=Rv&"
                             (string-join (map (λ (symbol) (string-append "symbol=" symbol "|stocks")) symbols) "&")))
         (response-body _)
         (bytes->string/utf-8 _)
-        (string->jsexpr _)
-        (hash-ref _ 'data)
-        (hash-ref _ 'rows)
+        (string->jsexpr _ #:null (hash))
+        (hash-ref _ 'data (hash))
+        (hash-ref _ 'rows (list))
         (map (λ (row) (list (hash-ref row 'symbol) (string->number (string-replace (hash-ref row 'lastSale) "$" "")))) _)
         (flatten _)
         (apply hash _)

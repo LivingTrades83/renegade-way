@@ -10,12 +10,12 @@
   (command-line
    #:program "racket email-positions.rkt"
    #:once-each
-   [("-e" "--finviz-user") user
-                           "FinViz username"
-                           (finviz-user user)]
-   [("-f" "--finviz-pass") pass
-                           "FinViz password"
-                           (finviz-pass pass)]
+   ;[("-e" "--finviz-user") user
+   ;                        "FinViz username"
+   ;                        (finviz-user user)]
+   ;[("-f" "--finviz-pass") pass
+   ;                        "FinViz password"
+   ;                        (finviz-pass pass)]
    [("-n" "--db-name") name
                        "Database name. Defaults to 'local'"
                        (db-name name)]
