@@ -129,15 +129,22 @@ order by
   (map (λ (el) (->posix (iso8601->date el)))
        (query-list dbc "
 select
-  ex_date::text
+  coalesce(dc.ex_date::text, d.ex_date::text)
 from
-  zacks.dividend_calendar
+  zacks.dividend_calendar dc
+full outer join
+  polygon.dividend d
+on
+  dc.act_symbol = d.act_symbol and
+  dc.ex_date = d.ex_date
 where
-  act_symbol = $1 and
-  ex_date >= $2::text::date and
-  ex_date <= $3::text::date
+  (dc.act_symbol = $1 or d.act_symbol = $1) and
+  ((dc.ex_date >= $2::text::date and
+  dc.ex_date <= $3::text::date) or
+  (d.ex_date >= $2::text::date and
+  d.ex_date <= $3::text::date))
 order by
-  ex_date;
+  coalesce(dc.ex_date, d.ex_date);
 "
                    ticker-symbol
                    start-date
@@ -483,7 +490,7 @@ select
     then coalesce(trunc((market_vol.iv_current - market_hist_vol.iv_year_low) / (market_hist_vol.iv_year_high - market_hist_vol.iv_year_low) * 100, 2), 0.00)
     else coalesce(trunc((market_vol.iv_current - market_vol.iv_year_low) / (market_vol.iv_year_high - market_vol.iv_year_low) * 100, 2), 0.00)
   end as market_iv_rank,
-  spdr.to_sector_etf(market.sector),
+  coalesce(spdr.to_sector_etf(market.sector), ''),
   coalesce(trunc(sector_vol.iv_current * 100, 2), 0.00) as sector_iv,
   case when sector_vol.iv_year_low is null or sector_vol.iv_year_high is null
     then coalesce(trunc((sector_vol.iv_current - sector_hist_vol.iv_year_low) / (sector_hist_vol.iv_year_high - sector_hist_vol.iv_year_low) * 100, 2), 0.00)

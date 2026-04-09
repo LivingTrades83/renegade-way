@@ -403,8 +403,8 @@
              (string-contains? patterns "RP")
              (string-contains? patterns "DV"))
          (hash "Call Butterfly"
-               (let* ([closest-dte (foldl (λ (o res) (if (< (abs (- 14 (option-dte o)))
-                                                            (abs (- 14 (option-dte res))))
+               (let* ([closest-dte (foldl (λ (o res) (if (< (abs (- 28 (option-dte o)))
+                                                            (abs (- 28 (option-dte res))))
                                                          o
                                                          res))
                                           (first options)
@@ -418,11 +418,11 @@
                                          (first options)
                                          options)]
                       [first-long-call (last (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
-                                                                 (< (option-strike o) (- (option-strike short-call) (option-mid short-call)))
+                                                                 (< (option-strike o) (- (option-strike short-call) (* 2 (option-mid short-call))))
                                                                  (equal? (option-call-put o) "Call")))
                                                      options))]
                       [second-long-call (first (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
-                                                                   (> (option-strike o) (+ (option-strike short-call) (option-mid short-call)))
+                                                                   (> (option-strike o) (+ (option-strike short-call) (* 2 (option-mid short-call))))
                                                                    (equal? (option-call-put o) "Call")))
                                                        options))])
                  (list first-long-call short-call second-long-call))
@@ -458,8 +458,8 @@
                                                        options))])
                  (list first-long-call first-short-call second-short-call second-long-call))
                "Put Butterfly"
-               (let* ([closest-dte (foldl (λ (o res) (if (< (abs (- 14 (option-dte o)))
-                                                            (abs (- 14 (option-dte res))))
+               (let* ([closest-dte (foldl (λ (o res) (if (< (abs (- 28 (option-dte o)))
+                                                            (abs (- 28 (option-dte res))))
                                                          o
                                                          res))
                                           (first options)
@@ -473,11 +473,11 @@
                                         (first options)
                                         options)]
                       [first-long-put (first (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
-                                                                 (> (option-strike o) (+ (option-strike short-put) (option-mid short-put)))
+                                                                 (> (option-strike o) (+ (option-strike short-put) (* 2 (option-mid short-put))))
                                                                  (equal? (option-call-put o) "Put")))
                                                      options))]
                       [second-long-put (last (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
-                                                                 (< (option-strike o) (- (option-strike short-put) (option-mid short-put)))
+                                                                 (< (option-strike o) (- (option-strike short-put) (* 2 (option-mid short-put))))
                                                                  (equal? (option-call-put o) "Put")))
                                                      options))])
                  (list first-long-put short-put second-long-put))

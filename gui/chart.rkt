@@ -215,7 +215,9 @@
 
 (define (chart-vol-history-plot symbol-field canvas)
   (define adjusted-start-date-str (if (and (equal? "" (send chart-industry-field get-value))
-                                           (equal? symbol-field chart-stock-field))
+                                           (equal? symbol-field chart-stock-field)
+                                           (date>=? (iso8601->date (send chart-start-date-field get-value))
+                                                    (-months (iso8601->date (send chart-end-date-field get-value)) 11)))
                                       (date->iso8601 (-months (iso8601->date (send chart-end-date-field get-value)) 11))
                                       (send chart-start-date-field get-value)))
   (define vol-dvs (get-date-vol-history (send symbol-field get-value)
@@ -294,7 +296,9 @@
                  #:width (- (send canvas get-width) 12)
                  #:height (- (send canvas get-height) 12))
       (let* ([adjusted-start-date-str (if (and (equal? "" (send chart-industry-field get-value))
-                                               (equal? symbol-field chart-stock-field))
+                                               (equal? symbol-field chart-stock-field)
+                                               (date>=? (iso8601->date (send chart-start-date-field get-value))
+                                                        (-months (iso8601->date (send chart-end-date-field get-value)) 11)))
                                           (date->iso8601 (-months (iso8601->date (send chart-end-date-field get-value)) 11))
                                           (send chart-start-date-field get-value))]
              [dohlcs (get-date-ohlc (send symbol-field get-value)
