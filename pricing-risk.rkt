@@ -7,7 +7,8 @@
          black-scholes-gamma
          black-scholes-theta
          black-scholes-vega
-         black-scholes-rho)
+         black-scholes-rho
+         black-scholes-implied-vol)
 
 (define (black-scholes price years-left strike call-put rate vol divs)
   (let* ([price (exact->inexact price)]
@@ -59,3 +60,22 @@
 (define (black-scholes-rho price years-left strike call-put rate vol divs)
   (- (black-scholes price years-left strike call-put (+ rate 1/100) vol divs)
      (black-scholes price years-left strike call-put rate vol divs)))
+
+; this implementation is a hybrid of the newton-raphson method and bisection.
+; the guess - (price difference / vega) ratio is divided by 100 as vega represents a 1% change of vol (not a 1 unit change).
+(define (black-scholes-implied-vol price years-left strike call-put rate option-price divs vol-guess
+                                   #:low-vol [low-vol 1e-5] #:high-vol [high-vol 5.0])
+  (define bs-price (black-scholes price years-left strike call-put rate vol-guess divs))
+  (define vega (black-scholes-vega price years-left strike call-put rate vol-guess divs))
+  (define next-vol-guess (if (< (abs vega) 1e-6) (/ (+ low-vol high-vol) 2.0)
+                             (- vol-guess (/ (- bs-price option-price) vega 100.0))))
+
+  (set! next-vol-guess (max low-vol (min high-vol next-vol-guess)))
+
+  (if (or (= +nan.0 vol-guess)
+          (= low-vol vol-guess high-vol)
+          (< (abs (- bs-price option-price)) 1e-6))
+      vol-guess
+      (black-scholes-implied-vol price years-left strike call-put rate option-price divs next-vol-guess
+                                 #:low-vol (if (> 0.0 (- bs-price option-price)) next-vol-guess low-vol)
+                                 #:high-vol (if (< 0.0 (- bs-price option-price)) next-vol-guess high-vol))))
