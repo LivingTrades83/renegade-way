@@ -17,6 +17,7 @@
          (struct-out vol-analysis)
          (struct-out condor-analysis)
          (struct-out earnings-vibes-analysis)
+         (struct-out etf-vrp-analysis)
          (struct-out position-analysis)
          (struct-out option)
          (contract-out
@@ -26,7 +27,9 @@
                             'ascending-triangle 'descending-triangle
                             'range-rally 'range-pullback
                             'increasing-rank 'decreasing-rank
-                            'increasing-vol 'decreasing-vol))
+                            'increasing-vol 'decreasing-vol
+                            'call-condor 'earnings-calendar
+                            'volatility-risk-premium))
              (strategy (or/c 'long-call 'long-put
                              'bull-call-vertical-spread 'bear-call-vertical-spread
                              'bull-put-vertical-spread 'bear-put-vertical-spread
@@ -118,6 +121,9 @@
   #:transparent)
 
 (struct earnings-vibes-analysis (stock min-expiration max-expiration strike vol-slope iv-hv price-strike-ratio earnings-date option-spread 30d-avg-volume)
+  #:transparent)
+
+(struct etf-vrp-analysis (etf iv-hv ivp-1yr 30d-60d-fwd-vol 30d-60d-flat-fwd-vol flat-fwd-to-fwd-ratio option-spread)
   #:transparent)
 
 (struct position-analysis (sector stock expiration strike call-put account signed-shares stock-stop stock-close stock-target end-date strategy)

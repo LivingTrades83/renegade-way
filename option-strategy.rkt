@@ -653,4 +653,43 @@
                                         (first options)
                                         options)])
                  (list short-put long-put)))]
+        [(or (string-contains? patterns "VR"))
+         (hash "Call Horizontal Spread"
+               (let* ([closest-back-dte (foldl (λ (o res) (if (< (abs (- 56 (option-dte o)))
+                                                                 (abs (- 56 (option-dte res))))
+                                                              o
+                                                              res))
+                                               (first options)
+                                               options)]
+                      [closest-front-dte (foldl (λ (o res) (if (and (< (abs (- (- (option-dte closest-back-dte) 28) (option-dte o)))
+                                                                       (abs (- (- (option-dte closest-back-dte) 28) (option-dte res))))
+                                                                    (>= (option-dte o) (- (option-dte closest-back-dte) 21)))
+                                                               o
+                                                               res))
+                                                (first options)
+                                                options)]
+                      [eligible-strikes (let* ([options-at-dtes (filter (λ (o) (or (= (option-dte closest-front-dte) (option-dte o))
+                                                                                   (= (option-dte closest-back-dte) (option-dte o))))
+                                                                        options)]
+                                               [options-by-strike (group-by (λ (o) (option-strike o)) options-at-dtes)]
+                                               [options-at-both-dtes (filter (λ (l) (<= 4 (length l))) options-by-strike)])
+                                          (remove-duplicates (flatten (map (λ (l) (map (λ (o) (option-strike o)) l))
+                                                                           options-at-both-dtes))))]
+                      [long-call (foldl (λ (o res) (if (and (= (option-dte o) (option-dte closest-back-dte))
+                                                            (index-of eligible-strikes (option-strike o))
+                                                            (<= (abs (- underlying-price (option-strike o)))
+                                                                (abs (- underlying-price (option-strike res))))
+                                                            (equal? (option-call-put o) "Call"))
+                                                       o
+                                                       res))
+                                        (first options)
+                                        options)]
+                      [short-call (foldl (λ (o res) (cond [(and (= (option-dte o) (option-dte closest-front-dte))
+                                                                (= (option-strike o) (option-strike long-call))
+                                                                (equal? (option-call-put o) "Call"))
+                                                           o]
+                                                          [else res]))
+                                         (first options)
+                                         options)])
+                 (list short-call long-call)))]
         [else (hash)]))

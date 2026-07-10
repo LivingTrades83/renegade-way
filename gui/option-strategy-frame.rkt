@@ -122,8 +122,9 @@
                                                                    ["DR" 'decreasing-rank]
                                                                    ["IV" 'increasing-vol]
                                                                    ["DV" 'decreasing-vol]
-                                                                   ["CC" 'decreasing-vol] ; call condor
-                                                                   ["EC" 'decreasing-vol]))
+                                                                   ["CC" 'call-condor]
+                                                                   ["EC" 'earnings-calendar]
+                                                                   ["VR" 'volatility-risk-premium]))
                                                  (define order-data
                                                    (map (λ (o)
                                                           (order pattern
