@@ -17,11 +17,13 @@
          get-date-ohlc
          get-date-variance-history
          get-date-vol-history
+         get-date-vol-curve-history
          get-dividend-dates
          get-dividend-estimates
          get-earnings-dates
          get-earnings-symbols-for-date
          get-earnings-vibes-analysis
+         get-etf-vrp-analysis
          get-execution-tick
          get-next-earnings-date
          get-options
@@ -79,7 +81,9 @@ where
   act_symbol = $1 and
   date >= $2::text::date and
   date <= $3::text::date and
-  hv_current is not null;
+  hv_current is not null
+order by
+  date;
 "
                                             ticker-symbol
                                             start-date
@@ -98,13 +102,59 @@ where
   act_symbol = $1 and
   date >= $2::text::date and
   date <= $3::text::date and
-  iv_current is not null;
+  iv_current is not null
+order by
+  date;
 "
                                        ticker-symbol
                                        start-date
                                        end-date)])
     (map (λ (row) (dv (->posix (iso8601->date (vector-ref row 0))) (vector-ref row 1)))
          vol-history-query)))
+
+(define (get-date-vol-curve-history ticker-symbol start-date end-date)
+  (let ([vol-curve-history-query (query-rows dbc "
+with closest_curve_points as (select
+  ac.date,
+  ac.act_symbol,
+  closest(expiration, (ac.date + '28 days'::interval)::date) as expiration,
+  closest(strike, o.close) as strike
+from
+  oic.atm_curve ac
+join
+  polygon.ohlc o
+on
+  ac.date = o.date and
+  ac.act_symbol = o.act_symbol
+where
+  ac.act_symbol = $1 and
+  ac.date >= $2::text::date and
+  ac.date <= $3::text::date
+group by
+  ac.date,
+  ac.act_symbol)
+select
+  ccp.date::text,
+  min(ac.vol)
+from
+  closest_curve_points ccp
+join
+  oic.atm_curve ac
+on
+  ccp.date = ac.date and
+  ccp.act_symbol = ac.act_symbol and
+  ccp.expiration = ac.expiration and
+  ccp.strike = ac.strike
+group by
+  ccp.date
+order by
+  ccp.date;
+"
+                                             ticker-symbol
+                                             start-date
+                                             end-date)])
+    (map (λ (row) (dv (->posix (iso8601->date (vector-ref row 0))) (vector-ref row 1)))
+         vol-curve-history-query)))
 
 (define (get-vol-surface ticker-symbol date)
   (query-rows dbc "
@@ -931,6 +981,98 @@ on
 order by
   coalesce((back_vol.vol - front_vol.vol) / nullif(exprs.max_expiration - exprs.min_expiration, 0), 0) asc;
 ")
+                   date)))
+
+(define (get-etf-vrp-analysis date)
+  (map (λ (row) (etf-vrp-analysis (vector-ref row 0) (vector-ref row 1) (vector-ref row 2)
+                                  #f #f #f (vector-ref row 3)))
+       (query-rows dbc "
+with etfs as (
+select distinct
+  etf_symbol as act_symbol
+from
+  spdr.etf_holding
+where
+  date = (select max(date) from spdr.etf_holding where date <= $1::text::date)
+order by
+  etf_symbol
+), log_iv_hv as (
+select
+  vh.act_symbol,
+  trunc(log(vh.iv_current / vh.hv_current) * 100, 2) as iv_hv,
+  vh.iv_current
+from
+  oic.volatility_history vh
+join
+  etfs
+on
+  vh.act_symbol = etfs.act_symbol
+where
+  date = (select max(date) from oic.volatility_history vh where date <= $1::text::date)
+), ivp_1yr as (
+select
+  vh.act_symbol,
+  round(
+    sum(
+      case when vh.iv_current < log_iv_hv.iv_current then 1.0
+      else 0.0
+      end
+    ) / count(*) * 100.0, 2) as ivp
+from
+  oic.volatility_history vh
+join
+  etfs
+on
+  vh.act_symbol = etfs.act_symbol
+join
+  log_iv_hv
+on
+  vh.act_symbol = log_iv_hv.act_symbol
+where
+  vh.date >= $1::text::date - '1 year'::interval and
+  vh.date <= $1::text::date
+group by
+  vh.act_symbol
+), sprds as (
+select
+  act_symbol,
+  avg((ask - bid) / ask) as spread
+from
+  oic.option_chain
+where
+  date = (select max(date) from oic.option_chain where date <= $1::text::date ) and
+  act_symbol in (select distinct act_symbol from etfs) and
+  expiration > $1::text::date and
+  expiration <= $1::text::date + interval '3 months' and
+  bid > 0.0 and
+  ask > 0.0 and
+  ((delta >= 0.2 and delta <= 0.8) or
+  (delta <= -0.2 and delta >= -0.8))
+group by
+  act_symbol
+)
+select
+  etfs.act_symbol,
+  coalesce(log_iv_hv.iv_hv, 0.0) as iv_hv,
+  coalesce(ivp_1yr.ivp, 0.0) as ivp,
+  sprds.spread
+from
+  etfs
+left outer join
+  log_iv_hv
+on
+  etfs.act_symbol = log_iv_hv.act_symbol
+left outer join
+  ivp_1yr
+on
+  etfs.act_symbol = ivp_1yr.act_symbol
+left outer join
+  sprds
+on
+  etfs.act_symbol = sprds.act_symbol
+order by
+  act_symbol;
+"
                    date)))
 
 (define (get-position-analysis date)
