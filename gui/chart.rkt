@@ -418,37 +418,44 @@
                  #:y-label "Vol"
                  #:width (- (send canvas get-width) 12)
                  #:height (- (send canvas get-height) 12))
-      (let [(snip (parameterize ([plot-x-ticks (date-ticks)]
-                                 [plot-width (- (send canvas get-width) 12)]
-                                 [plot-height (- (send canvas get-height) 12)]
-                                 [plot-legend-layout (list 'rows 4 'compact)])
-                    (plot-snip (list (tick-grid)
-                                     (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 1))) atm-curve)
-                                            #:label "Fit"
-                                            #:color 1)
-                                     (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 2))) atm-curve)
-                                            #:label "Closest ITM Call"
-                                            #:style 'long-dash
-                                            #:color 2)
-                                     (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 3))) atm-curve)
-                                            #:label "Closest OTM Call"
-                                            #:style 'long-dash
-                                            #:color 3)
-                                     (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 4))) atm-curve)
-                                            #:label "Closest OTM Put"
-                                            #:style 'long-dash
-                                            #:color 4)
-                                     (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 5))) atm-curve)
-                                            #:label "Closest ITM Put"
-                                            #:style 'long-dash
-                                            #:color 5))
-                               #:title (string-append (get-security-name (send symbol-field get-value)) " ("
-                                                      (send symbol-field get-value) ")")
-                               #:x-label "Expiration"
-                               #:y-label "Vol"
-                               #:legend-anchor 'outside-top
-                               #:x-min (->posix (iso8601->date (send chart-end-date-field get-value)))
-                               #:x-max (->posix (+months (iso8601->date (send chart-end-date-field get-value))  5)))))]
+      (let* ([min-low (apply min (map (λ (el) (min (vector-ref el 1) (vector-ref el 2) (vector-ref el 3)
+                                                   (vector-ref el 4) (vector-ref el 5))) atm-curve))]
+             [earnings-dates-points (map (λ (d) (point-label (vector d min-low) "E" #:anchor 'bottom))
+                                         (get-earnings-dates (send symbol-field get-value)
+                                                             (send chart-end-date-field get-value)
+                                                             (date->iso8601 (+months (iso8601->date (send chart-end-date-field get-value)) 5))))]
+             [snip (parameterize ([plot-x-ticks (date-ticks)]
+                                  [plot-width (- (send canvas get-width) 12)]
+                                  [plot-height (- (send canvas get-height) 12)]
+                                  [plot-legend-layout (list 'rows 4 'compact)])
+                     (plot-snip (list (tick-grid)
+                                      (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 1))) atm-curve)
+                                             #:label "Fit"
+                                             #:color 1)
+                                      (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 2))) atm-curve)
+                                             #:label "Closest ITM Call"
+                                             #:style 'long-dash
+                                             #:color 2)
+                                      (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 3))) atm-curve)
+                                             #:label "Closest OTM Call"
+                                             #:style 'long-dash
+                                             #:color 3)
+                                      (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 4))) atm-curve)
+                                             #:label "Closest OTM Put"
+                                             #:style 'long-dash
+                                             #:color 4)
+                                      (lines (map (λ (p) (vector (->posix (iso8601->date (vector-ref p 0))) (vector-ref p 5))) atm-curve)
+                                             #:label "Closest ITM Put"
+                                             #:style 'long-dash
+                                             #:color 5)
+                                      earnings-dates-points)
+                                #:title (string-append (get-security-name (send symbol-field get-value)) " ("
+                                                       (send symbol-field get-value) ")")
+                                #:x-label "Expiration"
+                                #:y-label "Vol"
+                                #:legend-anchor 'outside-top
+                                #:x-min (->posix (iso8601->date (send chart-end-date-field get-value)))
+                                #:x-max (->posix (+months (iso8601->date (send chart-end-date-field get-value))  5))))])
         (define item-font (send the-font-list find-or-create-font 12 'default 'normal 'normal))
         (define background (make-object color% #xff #xf8 #xdc 0.8))
         (define (make-tag vol-point)

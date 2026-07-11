@@ -691,5 +691,45 @@
                                                           [else res]))
                                          (first options)
                                          options)])
-                 (list short-call long-call)))]
+                 (list short-call long-call))
+               "Call Condor"
+               (with-handlers ([exn:fail? (λ (e) (list))])
+                 (let* ([closest-back-dte (foldl (λ (o res) (if (< (abs (- 56 (option-dte o)))
+                                                                   (abs (- 56 (option-dte res))))
+                                                                o
+                                                                res))
+                                                 (first options)
+                                                 options)]
+                        ; we first find the closest-back-dte to match the expiration found from the horizontal spread
+                        [closest-dte (foldl (λ (o res) (if (and (< (abs (- (- (option-dte closest-back-dte) 28) (option-dte o)))
+                                                                   (abs (- (- (option-dte closest-back-dte) 28) (option-dte res))))
+                                                                (>= (option-dte o) (- (option-dte closest-back-dte) 21)))
+                                                           o
+                                                           res))
+                                            (first options)
+                                            options)]
+                        [closest-strike (foldl (λ (o res) (if (< (abs (- 5/10 (option-delta o)))
+                                                                 (abs (- 5/10 (option-delta res))))
+                                                              o
+                                                              res))
+                                               (first options)
+                                               (filter (λ (o) (= (option-dte o) (option-dte closest-dte))) options))]
+                        [first-short-call (last (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
+                                                                    (< (option-strike o) (- (option-strike closest-strike) (option-mid closest-strike)))
+                                                                    (equal? (option-call-put o) "Call")))
+                                                        options))]
+                        [second-short-call (first (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
+                                                                      (> (option-strike o) (+ (option-strike closest-strike) (option-mid closest-strike)))
+                                                                      (equal? (option-call-put o) "Call")))
+                                                          options))]
+                        [long-short-distance (* 1/2 (- (option-strike second-short-call) (option-strike first-short-call)))]
+                        [first-long-call (last (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
+                                                                   (<= (option-strike o) (- (option-strike first-short-call) long-short-distance))
+                                                                   (equal? (option-call-put o) "Call")))
+                                                       options))]
+                        [second-long-call (first (filter (λ (o) (and (= (option-dte o) (option-dte closest-dte))
+                                                                     (>= (option-strike o) (+ (option-strike second-short-call) long-short-distance))
+                                                                     (equal? (option-call-put o) "Call")))
+                                                         options))])
+                   (list first-long-call first-short-call second-short-call second-long-call))))]
         [else (hash)]))

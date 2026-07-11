@@ -117,8 +117,7 @@ order by
 with closest_curve_points as (select
   ac.date,
   ac.act_symbol,
-  closest(expiration, (ac.date + '28 days'::interval)::date) as expiration,
-  closest(strike, o.close) as strike
+  closest(expiration, (ac.date + '28 days'::interval)::date) as expiration
 from
   oic.atm_curve ac
 join
@@ -143,8 +142,7 @@ join
 on
   ccp.date = ac.date and
   ccp.act_symbol = ac.act_symbol and
-  ccp.expiration = ac.expiration and
-  ccp.strike = ac.strike
+  ccp.expiration = ac.expiration
 group by
   ccp.date
 order by
@@ -1071,7 +1069,7 @@ left outer join
 on
   etfs.act_symbol = sprds.act_symbol
 order by
-  act_symbol;
+  log_iv_hv.iv_hv desc;
 "
                    date)))
 

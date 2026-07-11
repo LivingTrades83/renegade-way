@@ -18,7 +18,7 @@
   (set! etf-vrp-analysis-list
         (map (λ (analysis-for-symbol)
                (define symbol (etf-vrp-analysis-etf analysis-for-symbol))
-               (define prices (get-date-ohlc symbol end-date end-date))
+               (define prices (get-date-ohlc symbol (date->iso8601 (-days (iso8601->date end-date) 7)) end-date))
                (define options (get-updated-options symbol end-date (dohlc-close (last prices)) #:compute-all-greeks #f #:fit-vols fit-vols?))
                (define call-horizontal-options (hash-ref (suitable-options options "VR" (dohlc-close (last prices))) "Call Horizontal Spread"))
 
