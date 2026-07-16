@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require racket/class
-         racket/gui
+(require racket/gui
          racket/list
          "../db-queries.rkt"
          "../etf-vrp-analysis.rkt"
@@ -10,28 +9,49 @@
          "option-strategy-frame.rkt")
 
 (provide etf-vrp-analysis-box
+         etf-vrp-analysis-filter
          update-etf-vrp-analysis-box)
 
 (define analysis-box-ref #f)
 
+(define hide-no-pattern (make-parameter #f))
+
+(define hide-large-spread (make-parameter #f))
+
+(define (etf-vrp-analysis-filter #:hide-no-pattern no-pattern #:hide-large-spread large-spread)
+  (hide-no-pattern no-pattern)
+  (hide-large-spread large-spread)
+  (update-etf-vrp-analysis-box etf-vrp-analysis-list))
+
 (define (update-etf-vrp-analysis-box etf-vrp-analysis-list)
-  (send analysis-box-ref set
-          (map (λ (m) (etf-vrp-analysis-etf m)) etf-vrp-analysis-list)
+  (let* ([filter-pattern (if (hide-no-pattern)
+                             (filter (λ (m) (and (real? (etf-vrp-analysis-iv-hv m))
+                                                 (<= 0.0 (etf-vrp-analysis-iv-hv m))
+                                                 (real? (etf-vrp-analysis-ivp-1yr m))
+                                                 (>= 50.0 (etf-vrp-analysis-ivp-1yr m))
+                                                 (real? (etf-vrp-analysis-flat-fwd-to-fwd-ratio m))
+                                                 (<= 1.0 (etf-vrp-analysis-flat-fwd-to-fwd-ratio m)))) etf-vrp-analysis-list)
+                             etf-vrp-analysis-list)]
+         [filter-spread (if (hide-large-spread)
+                            (filter (λ (m) (and (> 50.0 (etf-vrp-analysis-option-spread m)))) filter-pattern)
+                            filter-pattern)])
+    (send analysis-box-ref set
+          (map (λ (m) (etf-vrp-analysis-etf m)) filter-spread)
           (map (λ (m) (if (real? (etf-vrp-analysis-iv-hv m)) (real->decimal-string (etf-vrp-analysis-iv-hv m)) ""))
-               etf-vrp-analysis-list)
+               filter-spread)
           (map (λ (m) (if (real? (etf-vrp-analysis-ivp-1yr m)) (real->decimal-string (etf-vrp-analysis-ivp-1yr m)) ""))
-               etf-vrp-analysis-list)
+               filter-spread)
           (map (λ (m) (if (real? (etf-vrp-analysis-30d-60d-fwd-vol m)) (real->decimal-string (etf-vrp-analysis-30d-60d-fwd-vol m)) ""))
-               etf-vrp-analysis-list)
+               filter-spread)
           (map (λ (m) (if (real? (etf-vrp-analysis-30d-60d-flat-fwd-vol m)) (real->decimal-string (etf-vrp-analysis-30d-60d-flat-fwd-vol m)) ""))
-               etf-vrp-analysis-list)
+               filter-spread)
           (map (λ (m) (if (real? (etf-vrp-analysis-flat-fwd-to-fwd-ratio m)) (real->decimal-string (etf-vrp-analysis-flat-fwd-to-fwd-ratio m)) ""))
-               etf-vrp-analysis-list)
+               filter-spread)
           (map (λ (m) (if (real? (etf-vrp-analysis-option-spread m)) (real->decimal-string (etf-vrp-analysis-option-spread m)) ""))
-               etf-vrp-analysis-list)
-          )
-  (map (λ (m i) (send analysis-box-ref set-data i m))
-         etf-vrp-analysis-list (range (length etf-vrp-analysis-list))))
+               filter-spread))
+    ; We set data here so that we can retrieve it later with `get-data`
+    (map (λ (m i) (send analysis-box-ref set-data i m))
+         filter-spread (range (length filter-spread)))))
 
 (define analysis-box-columns (list "ETF" "IV/HV" "IVP" "FwdVol" "FFwdVol" "FFwd/Fwd" "OptSprd"))
 

@@ -1053,7 +1053,7 @@ select
   etfs.act_symbol,
   coalesce(log_iv_hv.iv_hv, 0.0) as iv_hv,
   coalesce(ivp_1yr.ivp, 0.0) as ivp,
-  sprds.spread
+  trunc(sprds.spread * 100.0, 2) as spread
 from
   etfs
 left outer join

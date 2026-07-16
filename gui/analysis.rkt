@@ -80,7 +80,9 @@
                                           #:hide-non-weekly (send hide-non-weekly-check-box get-value))
                    (condor-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
                                            #:hide-large-spread (send hide-spread-check-box get-value)
-                                           #:hide-non-weekly (send hide-non-weekly-check-box get-value)))]))
+                                           #:hide-non-weekly (send hide-non-weekly-check-box get-value))
+                   (etf-vrp-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
+                                           #:hide-large-spread (send hide-spread-check-box get-value)))]))
 
 (define hide-spread-check-box
   (new check-box%
@@ -100,7 +102,9 @@
                                            #:hide-non-weekly (send hide-non-weekly-check-box get-value))
                    (earnings-vibes-analysis-filter #:hide-large-spread (send hide-spread-check-box get-value)
                                                    #:hide-non-weekly (send hide-non-weekly-check-box get-value)
-                                                   #:use-live-data (send use-live-data-check-box get-value)))]))
+                                                   #:use-live-data (send use-live-data-check-box get-value))
+                   (etf-vrp-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
+                                           #:hide-large-spread (send hide-spread-check-box get-value)))]))
 
 (define hide-non-weekly-check-box
   (new check-box%
