@@ -13,6 +13,7 @@
          "vol-analysis.rkt"
          "earnings-vibes-analysis.rkt"
          "etf-vrp-analysis-box.rkt"
+         "forward-factor-analysis.rkt"
          "position-analysis.rkt")
 
 (provide analysis-tab-panel
@@ -82,7 +83,9 @@
                                            #:hide-large-spread (send hide-spread-check-box get-value)
                                            #:hide-non-weekly (send hide-non-weekly-check-box get-value))
                    (etf-vrp-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
-                                           #:hide-large-spread (send hide-spread-check-box get-value)))]))
+                                            #:hide-large-spread (send hide-spread-check-box get-value))
+                   (forward-factor-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
+                                                   #:hide-large-spread (send hide-spread-check-box get-value)))]))
 
 (define hide-spread-check-box
   (new check-box%
@@ -104,7 +107,9 @@
                                                    #:hide-non-weekly (send hide-non-weekly-check-box get-value)
                                                    #:use-live-data (send use-live-data-check-box get-value))
                    (etf-vrp-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
-                                           #:hide-large-spread (send hide-spread-check-box get-value)))]))
+                                            #:hide-large-spread (send hide-spread-check-box get-value))
+                   (forward-factor-analysis-filter #:hide-no-pattern (send hide-no-pattern-check-box get-value)
+                                                   #:hide-large-spread (send hide-spread-check-box get-value)))]))
 
 (define hide-non-weekly-check-box
   (new check-box%
@@ -140,7 +145,7 @@
 
 (define analysis-tab-panel
   (new tab-panel%
-       [choices (list "Price" "Rank" "Vol" "Condor" "Earnings Vibes" "ETF VRP" "Position")]
+       [choices (list "Price" "Rank" "Vol" "Condor" "Earnings Vibes" "ETF VRP" "Forward Factor" "Position")]
        [parent analysis-frame]
        [callback (λ (p e) (refresh-tab-panel))]))
 
@@ -153,6 +158,7 @@
     ["Condor" (condor-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))]
     ["Earnings Vibes" (earnings-vibes-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))]
     ["ETF VRP" (etf-vrp-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))]
+    ["Forward Factor" (forward-factor-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))]
     ["Position" (position-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))]))
 
 (define analyze-button
@@ -184,6 +190,8 @@
                      ["ETF VRP" (refresh-tab-panel)
                                 (run-etf-vrp-analysis (send end-date-field get-value))
                                 (update-etf-vrp-analysis-box etf-vrp-analysis-list)]
+                     ["Forward Factor" (refresh-tab-panel)
+                                       (run-forward-factor-analysis (send end-date-field get-value))]
                      ["Position" (refresh-tab-panel)
                                  (run-position-analysis (send market-field get-value) (send sector-field get-value)
                                                         (send start-date-field get-value) (send end-date-field get-value))])

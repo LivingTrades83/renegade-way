@@ -124,7 +124,8 @@
                                                                    ["DV" 'decreasing-vol]
                                                                    ["CC" 'call-condor]
                                                                    ["EC" 'earnings-calendar]
-                                                                   ["VR" 'volatility-risk-premium]))
+                                                                   ["VR" 'volatility-risk-premium]
+                                                                   ["FF" 'forward-factor]))
                                                  (define order-data
                                                    (map (λ (o)
                                                           (order pattern

@@ -25,6 +25,7 @@
          get-earnings-vibes-analysis
          get-etf-vrp-analysis
          get-execution-tick
+         get-forward-factor-analysis
          get-next-earnings-date
          get-options
          get-position-history
@@ -1070,6 +1071,164 @@ on
   etfs.act_symbol = sprds.act_symbol
 order by
   log_iv_hv.iv_hv desc;
+"
+                   date)))
+
+(define (get-forward-factor-analysis date)
+  (map (λ (row) (forward-factor-analysis (vector-ref row 0) (vector-ref row 1) (vector-ref row 2)
+                                         (vector-ref row 3) (vector-ref row 4) (vector-ref row 5)
+                                         (vector-ref row 6) (vector-ref row 7) (vector-ref row 8)
+                                         (vector-ref row 9)))
+       (query-rows dbc "
+with vol_by_exp as (select
+  act_symbol,
+  expiration,
+  avg(vol) as avg_vol
+from
+  oic.atm_curve ac
+where
+  date = (select max(date) from oic.atm_curve where date <= $1::text::date)
+group by
+  act_symbol,
+  expiration),
+earnings_date as (
+select distinct
+  vol_by_exp.act_symbol,
+  ec.date as actual,
+  coalesce(ec.date, $1::text::date + '28 days'::interval) as pivot
+from
+  vol_by_exp
+left outer join
+  zacks.earnings_calendar ec
+on
+  vol_by_exp.act_symbol = ec.act_symbol and
+  ec.date >= $1::text::date and
+  ec.date <= $1::text::date + '28 days'::interval),
+max_front_vol as (select
+  vol_by_exp.act_symbol,
+  max(avg_vol) as vol
+from
+  vol_by_exp
+join
+  earnings_date
+on
+  vol_by_exp.act_symbol = earnings_date.act_symbol
+where
+  expiration < pivot and
+  expiration >= $1::text::date + '7 days'::interval
+group by
+  vol_by_exp.act_symbol),
+min_back_vol as (select
+  vol_by_exp.act_symbol,
+  min(avg_vol) as vol
+from
+  vol_by_exp
+join
+  earnings_date
+on
+  vol_by_exp.act_symbol = earnings_date.act_symbol
+where
+  expiration >= earnings_date.pivot and
+  expiration <= earnings_date.pivot + '56 days'::interval
+group by
+  vol_by_exp.act_symbol),
+sprds as (
+select
+  act_symbol,
+  avg((ask - bid) / ask) as spread
+from
+  oic.option_chain
+where
+  date = (select max(date) from oic.option_chain where date <= $1::text::date) and
+  expiration > $1::text::date and
+  expiration <= $1::text::date + interval '3 months' and
+  bid > 0.0 and
+  ask > 0.0 and
+  ((delta >= 0.2 and delta <= 0.8) or
+  (delta <= -0.2 and delta >= -0.8))
+group by
+  act_symbol)
+select
+  max_front_vol.act_symbol,
+  to_char(fvx.expiration, 'YY-MM-DD') as front_exp,
+  trunc(max_front_vol.vol * 100.0, 2) as front_vol,
+  to_char(bvx.expiration, 'YY-MM-DD') as back_exp,
+  trunc(min_back_vol.vol * 100, 2) as back_vol,
+  trunc(max_front_vol.vol / min_back_vol.vol, 2) as vol_ratio,
+  trunc(sqrt(greatest(0.0001, (((bvx.expiration - $1::text::date)::decimal /
+        (make_date(date_part('year', $1::text::date)::integer + 1, 1, 1) - make_date(date_part('year', $1::text::date)::integer, 1, 1))::decimal
+        * min_back_vol.vol * min_back_vol.vol)
+      - ((fvx.expiration - $1::text::date)::decimal /
+        (make_date(date_part('year', $1::text::date)::integer + 1, 1, 1) - make_date(date_part('year', $1::text::date)::integer, 1, 1))::decimal
+        * max_front_vol.vol * max_front_vol.vol))
+    / ((bvx.expiration - fvx.expiration)::decimal /
+      (make_date(date_part('year', $1::text::date)::integer + 1, 1, 1) - make_date(date_part('year', $1::text::date)::integer, 1, 1))::decimal)
+    )) * 100.0, 2) as forward_vol,
+  trunc((max_front_vol.vol /
+  sqrt(greatest(0.0001, (((bvx.expiration - $1::text::date)::decimal /
+        (make_date(date_part('year', $1::text::date)::integer + 1, 1, 1) - make_date(date_part('year', $1::text::date)::integer, 1, 1))::decimal
+        * min_back_vol.vol * min_back_vol.vol)
+      - ((fvx.expiration - $1::text::date)::decimal /
+        (make_date(date_part('year', $1::text::date)::integer + 1, 1, 1) - make_date(date_part('year', $1::text::date)::integer, 1, 1))::decimal
+        * max_front_vol.vol * max_front_vol.vol))
+    / ((bvx.expiration - fvx.expiration)::decimal /
+      (make_date(date_part('year', $1::text::date)::integer + 1, 1, 1) - make_date(date_part('year', $1::text::date)::integer, 1, 1))::decimal)
+    ))
+  ), 4) * 100.0 - 100.0 as forward_factor,
+  coalesce(to_char(earnings_date.actual, 'YY-MM-DD'), '') as earnings_date,
+  trunc(sprds.spread * 100.0, 2) as opt_spread
+from
+  max_front_vol
+join
+  min_back_vol
+on
+  max_front_vol.act_symbol = min_back_vol.act_symbol
+join
+  earnings_date
+on
+  max_front_vol.act_symbol = earnings_date.act_symbol
+join
+  nasdaq.symbol as sym
+on
+  max_front_vol.act_symbol = sym.act_symbol
+join
+  sprds
+on
+  max_front_vol.act_symbol = sprds.act_symbol
+join
+  (select
+    act_symbol,
+    min(expiration) as expiration,
+    avg_vol
+  from
+    vol_by_exp
+  where
+    expiration < $1::text::date + '28 days'::interval
+  group by
+    act_symbol,
+    avg_vol) fvx
+on
+  max_front_vol.act_symbol = fvx.act_symbol and
+  max_front_vol.vol = fvx.avg_vol
+join
+  (select
+    act_symbol,
+    min(expiration) as expiration,
+    avg_vol
+  from
+    vol_by_exp
+  where
+    expiration >= $1::text::date + '28 days'::interval
+  group by
+    act_symbol,
+    avg_vol) bvx
+on
+  min_back_vol.act_symbol = bvx.act_symbol and
+  min_back_vol.vol = bvx.avg_vol
+where
+  sym.is_etf = false
+order by
+  forward_factor desc;
 "
                    date)))
 
