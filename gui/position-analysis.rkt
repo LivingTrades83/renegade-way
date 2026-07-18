@@ -189,7 +189,7 @@
                      [stretchable-height (not height)]))
     (let ([box-width (send box get-width)]
           [num-cols (length analysis-box-columns)])
-      (for-each (λ (i) (send box set-column-width i 80 80 80))
+      (for-each (λ (i) (send box set-column-width i 100 100 100))
                 (range num-cols)))
     box)
 

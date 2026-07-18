@@ -77,7 +77,7 @@
          [choices (list "")]))
   (let ([box-width (send analysis-box get-width)]
         [num-cols (length analysis-box-columns)])
-    (for-each (λ (i) (send analysis-box set-column-width i 80 80 80))
+    (for-each (λ (i) (send analysis-box set-column-width i 100 100 100))
               (range num-cols)))
   (set! analysis-box-ref analysis-box)
   (update-etf-vrp-analysis-box etf-vrp-analysis-list))
