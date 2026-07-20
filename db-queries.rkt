@@ -166,7 +166,8 @@ from
   oic.option_chain
 where
   act_symbol = $1 and
-  date = (select max(date) from oic.option_chain where date <= $2::text::date)
+  date = (select max(date) from oic.option_chain where date <= $2::text::date) and
+  expiration >= $2::text::date
 order by
   expiration,
   call_put,
@@ -1213,7 +1214,7 @@ on
 join
   (select
     act_symbol,
-    min(expiration) as expiration,
+    max(expiration) as expiration,
     avg_vol
   from
     vol_by_exp
