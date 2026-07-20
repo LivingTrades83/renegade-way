@@ -183,6 +183,17 @@
                                                                       (* 100 risk (if (= i 0) -1 1))))]
                                                [stock-stop (+ (order-stock-entry ord) (* 2 atr-50))]
                                                [stock-target (order-strike (send order-box get-data 0))])]
+                                 [(equal? 'call-double-horizontal-spread (order-strategy ord))
+                                  (define risk (max 0.01
+                                                    (+ (- (- (order-price (send order-box get-data 1)) (order-price (send order-box get-data 0)))
+                                                          (min 0 (- (order-strike (send order-box get-data 0)) (order-strike (send order-box get-data 1)))))
+                                                       (- (- (order-price (send order-box get-data 3)) (order-price (send order-box get-data 2)))
+                                                          (min 0 (- (order-strike (send order-box get-data 3)) (order-strike (send order-box get-data 2))))))))
+                                  (struct-copy order ord
+                                               [quantity (truncate (/ (string->number (send trade-risk-field get-value))
+                                                                      (* 100 risk (if (or (= i 0) (= i 2)) -1 1))))]
+                                               [stock-stop (- (order-stock-entry ord) (* 2 atr-50))]
+                                               [stock-target (order-stock-entry ord)])]
                                  [(equal? 'call-diagonal-spread (order-strategy ord))
                                   (define risk (- (order-price (send order-box get-data 0)) (order-price (send order-box get-data 1))))
                                   (struct-copy order ord
@@ -308,6 +319,7 @@
         'bull-put-vertical-spread "0.67"
         'call-horizontal-spread "1.00"
         'put-horizontal-spread "1.00"
+        'call-double-horizontal-spread "0.75"
         'call-diagonal-spread "0.50"
         'put-diagonal-spread "0.50"
         'call-butterfly "2.00"

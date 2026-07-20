@@ -37,6 +37,7 @@
                              'long-straddle 'long-strangle
                              'call-ratio-spread 'put-ratio-spread
                              'call-horizontal-spread 'put-horizontal-spread
+                             'call-double-horizontal-spread
                              'call-diagonal-spread 'put-diagonal-spread
                              'call-butterfly 'call-condor
                              'put-butterfly 'put-condor))
