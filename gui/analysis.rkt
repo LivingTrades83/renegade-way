@@ -205,6 +205,7 @@
   (condor-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))
   (earnings-vibes-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))
   (etf-vrp-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))
+  (forward-factor-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))
   (position-analysis-box analysis-tab-panel (send start-date-field get-value) (send end-date-field get-value))
 
   (refresh-tab-panel)

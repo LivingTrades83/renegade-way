@@ -188,11 +188,22 @@
                                                     (+ (- (- (order-price (send order-box get-data 1)) (order-price (send order-box get-data 0)))
                                                           (min 0 (- (order-strike (send order-box get-data 0)) (order-strike (send order-box get-data 1)))))
                                                        (- (- (order-price (send order-box get-data 3)) (order-price (send order-box get-data 2)))
-                                                          (min 0 (- (order-strike (send order-box get-data 3)) (order-strike (send order-box get-data 2))))))))
+                                                          (min 0 (- (order-strike (send order-box get-data 2)) (order-strike (send order-box get-data 3))))))))
                                   (struct-copy order ord
                                                [quantity (truncate (/ (string->number (send trade-risk-field get-value))
                                                                       (* 100 risk (if (or (= i 0) (= i 2)) -1 1))))]
                                                [stock-stop (- (order-stock-entry ord) (* 2 atr-50))]
+                                               [stock-target (order-stock-entry ord)])]
+                                 [(equal? 'put-double-horizontal-spread (order-strategy ord))
+                                  (define risk (max 0.01
+                                                    (+ (- (- (order-price (send order-box get-data 1)) (order-price (send order-box get-data 0)))
+                                                          (min 0 (- (order-strike (send order-box get-data 1)) (order-strike (send order-box get-data 0)))))
+                                                       (- (- (order-price (send order-box get-data 3)) (order-price (send order-box get-data 2)))
+                                                          (min 0 (- (order-strike (send order-box get-data 3)) (order-strike (send order-box get-data 2))))))))
+                                  (struct-copy order ord
+                                               [quantity (truncate (/ (string->number (send trade-risk-field get-value))
+                                                                      (* 100 risk (if (or (= i 0) (= i 2)) -1 1))))]
+                                               [stock-stop (+ (order-stock-entry ord) (* 2 atr-50))]
                                                [stock-target (order-stock-entry ord)])]
                                  [(equal? 'call-diagonal-spread (order-strategy ord))
                                   (define risk (- (order-price (send order-box get-data 0)) (order-price (send order-box get-data 1))))
@@ -513,7 +524,9 @@
                                                                      (equal? 'call-ratio-spread (order-strategy first-item))
                                                                      (equal? 'put-ratio-spread (order-strategy first-item))
                                                                      (equal? 'call-horizontal-spread (order-strategy first-item))
-                                                                     (equal? 'put-horizontal-spread (order-strategy first-item)))
+                                                                     (equal? 'put-horizontal-spread (order-strategy first-item))
+                                                                     (equal? 'call-double-horizontal-spread (order-strategy first-item))
+                                                                     (equal? 'put-double-horizontal-spread (order-strategy first-item)))
                                                                  total-price
                                                                  (abs total-price))]
                                                 [time-in-force 'day]
@@ -534,7 +547,9 @@
                                                                       (equal? 'long-straddle (order-strategy first-item))
                                                                       (equal? 'long-strangle (order-strategy first-item))
                                                                       (equal? 'call-horizontal-spread (order-strategy first-item))
-                                                                      (equal? 'put-horizontal-spread (order-strategy first-item)))
+                                                                      (equal? 'put-horizontal-spread (order-strategy first-item))
+                                                                      (equal? 'call-double-horizontal-spread (order-strategy first-item))
+                                                                      (equal? 'put-double-horizontal-spread (order-strategy first-item)))
                                                                   ""])] ; no oca-group for roos
                                                 [oca-type 1]
                                                 [action (if (or (equal? 'bull-put-vertical-spread (order-strategy first-item))
@@ -542,7 +557,9 @@
                                                                 (equal? 'call-ratio-spread (order-strategy first-item))
                                                                 (equal? 'put-ratio-spread (order-strategy first-item))
                                                                 (equal? 'call-horizontal-spread (order-strategy first-item))
-                                                                (equal? 'put-horizontal-spread (order-strategy first-item)))
+                                                                (equal? 'put-horizontal-spread (order-strategy first-item))
+                                                                (equal? 'call-double-horizontal-spread (order-strategy first-item))
+                                                                (equal? 'put-double-horizontal-spread (order-strategy first-item)))
                                                             'buy
                                                             (if (< 0 total-price) 'buy 'sell))]
                                                 [total-quantity quantity]
@@ -603,7 +620,18 @@
                                                                        (equal? 'long-strangle (order-strategy first-item))
                                                                        (equal? 'call-horizontal-spread (order-strategy first-item))
                                                                        (equal? 'put-horizontal-spread (order-strategy first-item)))
-                                                                   (list)])]
+                                                                   (list)]
+                                                                  [(or (equal? 'call-double-horizontal-spread (order-strategy first-item))
+                                                                       (equal? 'put-double-horizontal-spread (order-strategy first-item)))
+                                                                   (let* ([low-strike (min (order-strike (send order-box get-data 0))
+                                                                                           (order-strike (send order-box get-data 1)))]
+                                                                          [high-strike (max (order-strike (send order-box get-data 2))
+                                                                                            (order-strike (send order-box get-data 3)))]
+                                                                          [difference (- high-strike low-strike)])
+                                                                     (list (condition 'price 'and 'greater-than (+ low-strike (* 1/4 difference))
+                                                                                      underlying-contract-id "SMART" 'default #f #f)
+                                                                           (condition 'price 'and 'less-than (- high-strike (* 1/4 difference))
+                                                                                      underlying-contract-id "SMART" 'default #f #f)))])]
                                                 [use-price-management-algo #t])))
                    (ibkr-add1-next-order-id))]))
 
